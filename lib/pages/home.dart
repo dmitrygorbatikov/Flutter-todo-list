@@ -1,8 +1,6 @@
 import 'package:auth/components/main_drawer.dart';
-import 'package:auth/models/todo_model.dart';
 import 'package:auth/services/todo_service.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -16,25 +14,50 @@ class _HomePageState extends State<HomePage> {
   TextEditingController _descriptionController = TextEditingController();
 
   var todos = [];
+  bool checkBoxValue = false;
 
   getUserTodos() async {
     var userTodos = await todoService.getTodos();
     setState(() {
       todos = userTodos;
     });
-    return userTodos;
+  }
+
+  deleteUserTodo(int id, int index) async {
+    var newTodos = await todoService.deleteTodo(id);
+    setState(() {
+      todos = newTodos;
+    });
   }
 
   addTodo(BuildContext context) async {
-    var statusCode = await todoService.addTodo(
+    var data = await todoService.addTodo(
         _titleController.text, _descriptionController.text);
 
-    if (statusCode == 201) {
+    if (_titleController.text != "" && _descriptionController.text != "") {
       setState(() {
-        todos.add({
-          "title": _titleController.text,
-          "description": _descriptionController.text
-        });
+        todos.add(data);
+        _titleController.text = "";
+        _descriptionController.text = "";
+      });
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You need enter data'),
+        ),
+      );
+    }
+  }
+
+  updateTodo(BuildContext context, int id, int index) async {
+    await todoService.updateTodo(
+        _titleController.text, _descriptionController.text, id);
+
+    if (_titleController.text != "" && _descriptionController.text != "") {
+      setState(() {
+        todos[index]["title"] = _titleController.text;
+        todos[index]["description"] = _descriptionController.text;
         _titleController.text = "";
         _descriptionController.text = "";
       });
@@ -54,7 +77,7 @@ class _HomePageState extends State<HomePage> {
     super.initState();
   }
 
-  showDeleteModalFunc(context) {
+  showUpdateModalFunc(contextm, id, index) {
     return showDialog(
         context: context,
         builder: (context) {
@@ -67,19 +90,49 @@ class _HomePageState extends State<HomePage> {
                         color: Colors.white,
                       ),
                       padding: EdgeInsets.all(15),
-                      height: 360,
-                      width: MediaQuery.of(context).size.width * 0.7,
+                      height: 350,
+                      width: 400,
                       child: Column(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: <Widget>[
-                            Text("Do you wand to delete this todo ?"),
-                            Center(
-                                child: Row(
+                            Text(
+                              "Update",
+                              style: TextStyle(fontSize: 22),
+                            ),
+                            TextField(
+                              controller: TextEditingController(
+                                  text: _titleController.text),
+                              decoration: InputDecoration(
+                                  hintText: "Title",
+                                  fillColor: Colors.grey[200],
+                                  filled: true),
+                              onChanged: (text) {
+                                _titleController.text = text;
+                              },
+                            ),
+                            SizedBox(
+                              height: 15,
+                            ),
+                            TextField(
+                              autofocus: true,
+                              maxLines: 8,
+                              controller: TextEditingController(
+                                  text: _descriptionController.text),
+                              decoration: InputDecoration.collapsed(
+                                  hintText: "Description",
+                                  fillColor: Colors.grey[200],
+                                  filled: true),
+                              onChanged: (text) {
+                                _descriptionController.text = text;
+                              },
+                            ),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 Padding(
                                   padding: const EdgeInsets.all(10),
                                   child: SizedBox(
-                                    height: 25.0,
+                                    height: 40.0,
                                     child: MaterialButton(
                                         color: Colors.green,
                                         child: Text(
@@ -87,14 +140,14 @@ class _HomePageState extends State<HomePage> {
                                           style: TextStyle(color: Colors.white),
                                         ),
                                         onPressed: () {
-                                          Navigator.pop(context);
+                                          updateTodo(context, id, index);
                                         }),
                                   ),
                                 ),
                                 Padding(
                                   padding: const EdgeInsets.all(10),
                                   child: SizedBox(
-                                    height: 25.0,
+                                    height: 40.0,
                                     child: MaterialButton(
                                         color: Colors.red,
                                         child: Text(
@@ -107,12 +160,74 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                 ),
                               ],
-                            ))
+                            )
                           ]))));
         });
   }
 
-  showDialogFunc(context) {
+  showDeleteModalFunc(context, id, index) {
+    return showDialog(
+        context: context,
+        builder: (context) {
+          return Center(
+              child: Material(
+                  type: MaterialType.transparency,
+                  child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        color: Colors.white,
+                      ),
+                      padding: EdgeInsets.all(15),
+                      height: 150,
+                      width: 400,
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: <Widget>[
+                            Text(
+                              "Do you wand to delete this todo ?",
+                              style: TextStyle(fontSize: 22),
+                            ),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.all(10),
+                                  child: SizedBox(
+                                    height: 40.0,
+                                    child: MaterialButton(
+                                        color: Colors.green,
+                                        child: Text(
+                                          'Yes',
+                                          style: TextStyle(color: Colors.white),
+                                        ),
+                                        onPressed: () {
+                                          deleteUserTodo(id, index);
+                                          Navigator.pop(context);
+                                        }),
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(10),
+                                  child: SizedBox(
+                                    height: 40.0,
+                                    child: MaterialButton(
+                                        color: Colors.red,
+                                        child: Text(
+                                          'No',
+                                          style: TextStyle(color: Colors.white),
+                                        ),
+                                        onPressed: () {
+                                          Navigator.pop(context);
+                                        }),
+                                  ),
+                                ),
+                              ],
+                            )
+                          ]))));
+        });
+  }
+
+  showAddTodoFunc(context) {
     return showDialog(
         context: context,
         builder: (context) {
@@ -189,15 +304,12 @@ class _HomePageState extends State<HomePage> {
         drawer: MainDrawer(),
         floatingActionButton: FloatingActionButton(
           onPressed: () {
-            showDialogFunc(context);
+            showAddTodoFunc(context);
           },
           child: const Icon(Icons.add),
           backgroundColor: Colors.green,
         ),
-        body:
-            // children: [
-            // Text(todos.length > 0 ? "Your todos" : "You don't have todos"),
-            ListView(
+        body: ListView(
           physics: BouncingScrollPhysics(),
           children: todos
               .map((todo) => Padding(
@@ -213,74 +325,64 @@ class _HomePageState extends State<HomePage> {
                             subtitle: Text(
                               "${todo["description"]}",
                             ),
-                            leading: Icon(
-                              Icons.local_activity,
-                              size: 40,
-                              color: Colors.black,
+                            leading: Checkbox(
+                              value: checkBoxValue,
+                              onChanged: (value) {
+                                print(value);
+                              },
                             ),
+                            // Icon(
+                            //   Icons.local_activity,
+                            //   size: 40,
+                            //   color: Colors.black,
+                            // ),
                             trailing: Positioned(
                                 right: 0.0,
                                 bottom: 0.0,
                                 child: PopupMenuButton<MenuItem>(
+                                  onSelected: (item) {
+                                    onSelected(context, item, todo,
+                                        todos.indexOf(todo));
+                                  },
                                   itemBuilder: (context) => [
                                     ...MenuItems.items.map(buildItem).toList(),
                                   ],
                                   child: Icon(Icons.settings),
-                                ))
-                            //  IconButton(
-                            //   icon: Icon(Icons.delete),
-                            //   onPressed: () {},
-                            //   color: Colors.red,
-                            // ),
-                            )
-                        // Column(
-                        //     crossAxisAlignment: CrossAxisAlignment.start,
-                        //     children: [
-                        //       Container(
-                        //         child: Text(
-                        //           "${todo["title"]}",
-                        //           style: TextStyle(
-                        //               fontSize: 22,
-                        //               fontWeight: FontWeight.bold),
-                        //         ),
-                        //       ),
-                        //       Text(
-                        //         "${todo["description"]}",
-                        //         style: TextStyle(
-                        //             fontSize: 16,
-                        //             color: Color(0xFF86829D),
-                        //             height: 1.5),
-                        //       ),
-                        //     ])
-
-                        ),
+                                )))),
                   )))
               .toList(),
         ));
   }
 
   PopupMenuItem<MenuItem> buildItem(MenuItem item) => PopupMenuItem(
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: SizedBox(
-            height: 60.0,
-            child: MaterialButton(
-                color: Colors.lightBlueAccent,
-                child: Row(children: [
-                  Icon(
-                    item.icon,
-                    color: item.color,
-                    size: 20,
-                  ),
-                  SizedBox(width: 12),
-                  Text(item.text),
-                ]),
-                onPressed: () {
-                  showDeleteModalFunc(context);
-                }),
+      value: item,
+      child: SizedBox(
+        height: 60.0,
+        child: Row(children: [
+          Icon(
+            item.icon,
+            color: item.color,
+            size: 20,
           ),
-        ),
-      );
+          SizedBox(width: 12),
+          Text(item.text),
+        ]),
+      ));
+
+  void onSelected(BuildContext context, MenuItem item, todo, index) {
+    switch (item) {
+      case MenuItems.deleteItem:
+        showDeleteModalFunc(context, todo["id"], index);
+        break;
+      case MenuItems.updateItem:
+        setState(() {
+          _titleController.text = todo["title"];
+          _descriptionController.text = todo["description"];
+        });
+        showUpdateModalFunc(context, todo["id"], index);
+        break;
+    }
+  }
 }
 
 class MenuItem {

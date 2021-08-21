@@ -16,13 +16,16 @@ class _MainDrawerState extends State<MainDrawer> {
   var name;
   var surname;
   var email;
+  var registerDate;
 
   getProfile() async {
     var profileData = await userService.profile();
+    print(profileData);
     setState(() {
       name = profileData.name;
       surname = profileData.surname;
       email = profileData.email;
+      registerDate = profileData.registerDate.toString();
     });
     return profileData;
   }

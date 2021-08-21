@@ -27,11 +27,36 @@ class TodoService {
     Response res = await post(Uri.parse(addTodosUrl),
         body: body,
         headers: {'token': sharedPreferences.getString("token").toString()});
+    var jsonResponse = json.decode(res.body);
+
+    return jsonResponse;
+  }
+
+  updateTodo(String title, String description, int id) async {
+    String updateTodosUrl = this.baseUrl;
+
+    SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
+    Map body = {"title": title, "description": description};
+    Response res = await put(
+        Uri.parse("${updateTodosUrl.toString()}/${id.toString()}"),
+        body: body,
+        headers: {'token': sharedPreferences.getString("token").toString()});
     // var jsonResponse = json.decode(res.body);
 
-    // var data = Todo.fromJson(jsonResponse);
-
-    // return data;
     return res.statusCode;
+  }
+
+  deleteTodo(int id) async {
+    String deleteTodosUrl = this.baseUrl;
+
+    SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
+    Response res = await delete(
+        Uri.parse("${deleteTodosUrl.toString()}/${id.toString()}"),
+        headers: {'token': sharedPreferences.getString("token").toString()});
+    var jsonResponse = json.decode(res.body);
+
+    print(jsonResponse);
+
+    return jsonResponse;
   }
 }
